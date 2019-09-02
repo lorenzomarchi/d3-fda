@@ -1,0 +1,76 @@
+<head>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+</head>
+<body>
+    <svg xmlns="http://www.w3.org/2000/svg" style="border:1px black; width:600px;backgroud-color:grey; height:600px">
+    </svg> 
+
+    <script>
+        var dd;
+        var result={};
+    //data = d3.json("https://gist.githubusercontent.com/mbostock/4062045/raw/5916d145c8c048a6e3086915a6be464467391c62/miserables.json"
+    var data = d3.json("./miserables.json")    
+        .then( function (data){
+        //links = data.links.map( function(d){return Object.create(d);});
+        //nodes = data.nodes.map( function(d){return Object.create(d);});
+        width=500
+        height=500
+        scale = d3.scaleOrdinal(d3.schemeCategory10);
+        wmax=0;
+        for(var i = 0; i < data.links.length; ++i) {
+            result[data.links[i].source] = result[data.links[i].source]===undefined?1:++result[data.links[i].source];
+            wmax=result[data.links[i].source]>wmax?result[data.links[i].source]:wmax;
+        }
+        for (var i = 0; i< data.nodes.length; i++){
+
+            id=data.nodes[i].id
+            x = result[ id ]?result[ id ]/wmax:0;
+
+            data.nodes[ i ].mass = Math.cos(x)*4+2;
+
+        }
+
+        var simulation = d3.forceSimulation( data.nodes )
+            .force("link",d3.forceLink( data.links )
+                .id(function(d){return d.id;}) 
+            )
+            .force("charge", d3.forceManyBody() )
+            .force("center", d3.forceCenter(width / 2, height / 2));
+            
+        svg = d3.selectAll("svg")
+        .attr("viewBox", [0, 0, width, height]);
+
+        link = svg.append("g")
+            .attr("stroke", "#999")
+            .attr("stroke-opacity", 0.6)
+            .selectAll("line")
+            .data( data.links )
+            .join("line")
+            .attr("stroke-width", function(d) { return Math.sqrt(d.value);});
+            
+        node = svg.append("g")
+            .attr("stroke", "#fff")
+            .attr("stroke-width", 1.5)
+            .selectAll("circle")
+            .data( data.nodes )
+            .join("circle")
+          //  .attr("r", function(d){return result[d.id]?result[d.id]:2;})
+            .attr("r", function(d){return d.mass;})
+            .attr("fill", function (d){return scale(d.group);})
+            //.call(drag(simulation));
+        
+            simulation.on("tick", function()  {
+                link
+                    .attr("x1", function(d){ return d.source.x;})
+                    .attr("y1", function(d){ return d.source.y;})
+                    .attr("x2", function(d){ return d.target.x;})
+                    .attr("y2", function(d){ return d.target.y;});
+
+                node
+                    .attr("cx", function(d){ return  d.x;})
+                    .attr("cy", function(d){ return  d.y;});
+            })
+//        invalidation.then( function(){ simulation.stop();});
+        })
+    </script>
+</body>
